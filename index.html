@@ -55,9 +55,10 @@ input[type=range]{width:100%;accent-color:var(--blue);height:28px}
 .vbox{border-radius:12px;padding:14px;border:1px solid var(--line)}
 .vbox.A{border-top:5px solid var(--grey)} .vbox.B{border-top:5px solid var(--orange)}
 .vbox h3{margin:0 0 8px}
-.big{text-align:center;background:var(--ink);color:#fff;border-radius:14px;padding:22px 14px;margin:18px 0 12px}
+.big{text-align:center;background:#4b5563;transition:background .3s;color:#fff;border-radius:14px;padding:28px 14px;margin:18px 0 12px}
 .big .lbl{font-size:15px;opacity:.8}
-.big .num-big{font-size:clamp(44px,12vw,72px);font-weight:800;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.big.green{background:#15803d}.big.amber{background:#b45309}.big.gray{background:#4b5563}
+.big .num-big{font-size:clamp(76px,24vw,160px);font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .stats{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:620px){.stats{grid-template-columns:1fr 1fr 1fr}}
 .stat{border:1px solid var(--line);border-radius:12px;padding:12px}
@@ -140,7 +141,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:20px 16px 40p
         <div class="num"><label for="bc">Conversions</label><input id="bc" type="number" inputmode="numeric" min="0" step="1" value="116"></div>
       </div><div class="fine" id="bRate"></div></div>
   </div>
-  <div class="big"><div class="lbl">Probability B beats A</div><div class="num-big" id="pbeat">–</div></div>
+  <div class="big"><div class="lbl">Probability B beats A</div><div class="num-big" id="pbeat">–</div><div class="lbl" id="bigNote" style="margin-top:6px"></div></div>
   <div class="caption" id="abVerdict" style="margin-top:0"></div>
   <div class="stats" style="margin-top:14px">
     <div class="stat"><div class="k">Expected lift of B over A</div><div class="val" id="lift">–</div><div class="s" id="liftCI"></div></div>
@@ -294,15 +295,17 @@ function updateAB(){
   const [al,ah]=beta.ci(aA,bA),[bl,bh]=beta.ci(aB,bB);
   $('aRate').textContent=av?`Observed ${pct(ac/av,1)}  (${ac} of ${av})`:'No data yet';
   $('bRate').textContent=bv?`Observed ${pct(bc/bv,1)}  (${bc} of ${bv})`:'No data yet';
-  $('pbeat').textContent=Math.round(p*100)+'%';
+  $('pbeat').textContent=p>=.995?'>99%':p<.005?'<1%':Math.round(p*100)+'%';
+  $('pbeat').parentElement.className='big '+(p>=.95?'green':p>=.8?'amber':'gray');
   $('lift').textContent=sgn(L.mean,1);
   $('liftCI').textContent=`95% credible interval: ${sgn(L.lo,0)} to ${sgn(L.hi,0)}`;
-  $('worse').textContent=pct(1-p,0);
+  $('worse').textContent=(1-p)<.005?'<1%':pct(1-p,0);
   $('rates').textContent=`A ${pct(beta.mean(aA,bA),1)} · B ${pct(beta.mean(aB,bB),1)}`;
   $('ratesCI').textContent=`95% ranges: A ${pct(al,1)}–${pct(ah,1)}, B ${pct(bl,1)}–${pct(bh,1)}`;
+  $('bigNote').textContent=p>=.95?'Strong evidence':p>=.8?'Leaning B, not settled':p>.2?'Not enough evidence yet':'Evidence favors A';
   let v;
   if(av+bv===0) v='Enter some visitors and conversions to begin.';
-  else if(p>=.95) v=`<b>Strong evidence B is better.</b> There’s only a ${pct(1-p)} chance switching would be a mistake.`;
+  else if(p>=.95) v=`<b>Strong evidence B is better.</b> There’s only a ${(1-p)<.005?'<1%':pct(1-p)} chance switching would be a mistake.`;
   else if(p>=.8) v=`<b>B is probably better, but not settled.</b> There’s still a ${pct(1-p)} chance it’s no better than A. Worth more data if the decision is costly or hard to undo.`;
   else if(p>.2) v=`<b>Too close to call.</b> The data can’t yet separate the two variants. Keep the test running.`;
   else if(p>.05) v=`<b>B is probably worse than A, but not settled.</b>`;
