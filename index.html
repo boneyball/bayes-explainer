@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bayes in Plain English</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%232563eb%27/%3E%3Cpath d=%27M4 26C10 26 11 6 16 6s6 20 12 20%27 stroke=%27white%27 stroke-width=%273%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="description" content="An interactive, no-math explainer of Bayesian thinking: coin flips, A/B tests, and why your starting belief matters.">
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --ink:#1b2430; --muted:#5b6675; --line:#e3e7ee;
+  --blue:#2563eb; --orange:#d9480f; --grey:#8892a0; --green:#15803d; --red:#b91c1c;
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header.top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-in{max-width:960px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.brand{font-weight:700}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:8px;font-size:14px}
+nav a:hover{background:var(--bg);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--blue);color:#fff;border:0;padding:8px 14px;border-radius:10px;font-weight:600;font-size:14px}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
+main{max-width:960px;margin:0 auto;padding:0 16px 120px}
+.hero{padding:40px 0 12px}
+h1{font-size:clamp(28px,5vw,42px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+.lede{font-size:18px;color:var(--muted);max-width:680px;margin:0}
+section.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px 20px;margin:24px 0;transition:box-shadow .25s,border-color .25s}
+section.card.spot{border-color:var(--blue);box-shadow:0 0 0 4px rgba(37,99,235,.15)}
+h2{margin:0 0 4px;font-size:24px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:760px){.grid.two{grid-template-columns:300px 1fr}.grid.ab{grid-template-columns:1fr 1fr}}
+.ctl{margin-bottom:14px}
+.ctl label{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:2px}
+.ctl label span.v{font-variant-numeric:tabular-nums;color:var(--blue)}
+input[type=range]{width:100%;accent-color:var(--blue);height:28px}
+.group{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+.group h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.chartbox{position:relative;height:300px}
+.caption{background:#f1f5fd;border-left:4px solid var(--blue);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:16px}
+.caption b{font-weight:700}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:5px}
+.numrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.num label{font-size:13px;color:var(--muted);display:block}
+.num input{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-variant-numeric:tabular-nums}
+.vbox{border-radius:12px;padding:14px;border:1px solid var(--line)}
+.vbox.A{border-top:5px solid var(--grey)} .vbox.B{border-top:5px solid var(--orange)}
+.vbox h3{margin:0 0 8px}
+.big{text-align:center;background:var(--ink);color:#fff;border-radius:14px;padding:22px 14px;margin:18px 0 12px}
+.big .lbl{font-size:15px;opacity:.8}
+.big .num-big{font-size:clamp(44px,12vw,72px);font-weight:800;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:620px){.stats{grid-template-columns:1fr 1fr 1fr}}
+.stat{border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat .k{font-size:13px;color:var(--muted)}
+.stat .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .s{font-size:13px;color:var(--muted)}
+.fine{font-size:13px;color:var(--muted);margin-top:12px}
+#tour{position:fixed;left:0;right:0;bottom:0;z-index:30;display:none;padding:12px}
+#tour .box{max-width:720px;margin:0 auto;background:var(--ink);color:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#tour h4{margin:0 0 4px;font-size:17px}
+#tour p{margin:0 0 12px;color:#dbe2ec}
+#tour .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#tour .dots{display:flex;gap:6px}
+#tour .dots i{width:8px;height:8px;border-radius:50%;background:#52607a}
+#tour .dots i.on{background:#fff}
+#tour .btn.ghost{background:transparent;color:#fff;border-color:#52607a}
+@media(max-width:620px){nav{display:none}.top-in{flex-wrap:nowrap}#tour{padding:8px}#tour .box{padding:12px 14px}#tour p{font-size:14px;margin-bottom:8px}}
+footer{color:var(--muted);font-size:13px;text-align:center;padding:20px 16px 40px}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <span class="brand">Bayes in Plain English</span>
+  <nav>
+    <a href="#coin">1 · Coin</a><a href="#ab">2 · A/B test</a><a href="#prior">3 · Priors</a>
+  </nav>
+  <button class="btn" id="tourStart">▶ Guided tour</button>
+</div></header>
+
+<main>
+<div class="hero">
+  <h1>How confident should you be, given what you’ve seen?</h1>
+  <p class="lede">Bayesian thinking is a simple rule: start with what you believed, look at the evidence, and update. The charts below show that happening live. Drag anything.</p>
+</div>
+
+<!-- 1. COIN -->
+<section class="card" id="coin">
+  <h2>1 · The coin flip: beliefs update with evidence</h2>
+  <p class="sub">Question: how often does this coin land heads? We can never know for sure, so we track how plausible each answer is.</p>
+  <div class="grid two">
+    <div>
+      <div class="group" style="border:0;padding:0;margin:0">
+        <h3>Before data: your starting belief</h3>
+        <div class="chips" id="presets">
+          <button class="chip" data-a="1" data-b="1">No idea</button>
+          <button class="chip" data-a="10" data-b="10">Probably fair</button>
+          <button class="chip" data-a="40" data-b="40">Surely fair</button>
+        </div>
+        <div class="ctl"><label for="pa">Imagined past heads <span class="v" id="pav"></span></label><input type="range" id="pa" min="1" max="50" step="1" value="10"></div>
+        <div class="ctl"><label for="pb">Imagined past tails <span class="v" id="pbv"></span></label><input type="range" id="pb" min="1" max="50" step="1" value="10"></div>
+      </div>
+      <div class="group">
+        <h3>The data: flips you actually saw</h3>
+        <div class="ctl"><label for="h">Heads <span class="v" id="hv"></span></label><input type="range" id="h" min="0" max="100" step="1" value="7"></div>
+        <div class="ctl"><label for="t">Tails <span class="v" id="tv"></span></label><input type="range" id="t" min="0" max="100" step="1" value="3"></div>
+      </div>
+    </div>
+    <div>
+      <div class="legend"><span><i style="border-color:var(--grey);border-top-style:dashed"></i>Before data (prior)</span><span><i style="border-color:#7aa2f7"></i>What the data says (likelihood)</span><span><i style="border-color:var(--blue);border-top-width:4px"></i>Now (posterior)</span></div>
+      <div class="chartbox"><canvas id="coinChart" role="img" aria-label="Prior, likelihood and posterior curves for the coin's heads rate"></canvas></div>
+      <div class="caption" id="coinCaption"></div>
+    </div>
+  </div>
+  <p class="fine">Horizontal axis: the coin’s true heads rate. Taller means more plausible. Each curve is scaled to the same total area.</p>
+</section>
+
+<!-- 2. A/B -->
+<section class="card" id="ab">
+  <h2>2 · A/B test: how sure are we that B is better?</h2>
+  <p class="sub">Enter what each variant has seen so far. Both start from a neutral “no opinion” belief. The numbers below are made-up illustrations.</p>
+  <div class="grid ab">
+    <div class="vbox A"><h3>Variant A (current)</h3>
+      <div class="numrow">
+        <div class="num"><label for="av">Visitors</label><input id="av" type="number" inputmode="numeric" min="0" step="1" value="1000"></div>
+        <div class="num"><label for="ac">Conversions</label><input id="ac" type="number" inputmode="numeric" min="0" step="1" value="100"></div>
+      </div><div class="fine" id="aRate"></div></div>
+    <div class="vbox B"><h3>Variant B (new)</h3>
+      <div class="numrow">
+        <div class="num"><label for="bv">Visitors</label><input id="bv" type="number" inputmode="numeric" min="0" step="1" value="1000"></div>
+        <div class="num"><label for="bc">Conversions</label><input id="bc" type="number" inputmode="numeric" min="0" step="1" value="116"></div>
+      </div><div class="fine" id="bRate"></div></div>
+  </div>
+  <div class="big"><div class="lbl">Probability B beats A</div><div class="num-big" id="pbeat">–</div></div>
+  <div class="caption" id="abVerdict" style="margin-top:0"></div>
+  <div class="stats" style="margin-top:14px">
+    <div class="stat"><div class="k">Expected lift of B over A</div><div class="val" id="lift">–</div><div class="s" id="liftCI"></div></div>
+    <div class="stat"><div class="k">Chance B is actually worse</div><div class="val" id="worse">–</div><div class="s">the risk of switching</div></div>
+    <div class="stat"><div class="k">Conversion rates (best guess)</div><div class="val" style="font-size:17px" id="rates">–</div><div class="s" id="ratesCI"></div></div>
+  </div>
+  <div class="legend" style="margin-top:16px"><span><i style="border-color:var(--grey)"></i>A</span><span><i style="border-color:var(--orange)"></i>B</span></div>
+  <div class="chartbox"><canvas id="abChart" role="img" aria-label="Posterior curves for the conversion rate of A and B"></canvas></div>
+  <p class="fine">Where the curves overlap, we can’t tell the variants apart. More visitors make the curves narrower and the overlap smaller. “Credible interval” = the range we’re 95% sure contains the true value. Lift is relative: +18% means B converts 18% more often than A.</p>
+</section>
+
+<!-- 3. PRIOR -->
+<section class="card" id="prior">
+  <h2>3 · Does your starting belief matter?</h2>
+  <p class="sub">Two people see the same data. One is a skeptic who expected a 5% conversion rate; the other is an optimist who expected 20%. The truth, which neither knows, is 10%.</p>
+  <div class="chips" id="priorToggle">
+    <button class="chip" data-m="S">Skeptic</button>
+    <button class="chip" data-m="O">Optimist</button>
+    <button class="chip on" data-m="both">Both</button>
+  </div>
+  <div class="ctl"><label for="pn">Visitors observed (10% of them convert) <span class="v" id="pnv"></span></label><input type="range" id="pn" min="0" max="2000" step="10" value="0"></div>
+  <div class="legend"><span><i style="border-color:var(--blue)"></i>Skeptic</span><span><i style="border-color:var(--orange)"></i>Optimist</span><span><i style="border-color:var(--grey);border-top-style:dashed"></i>Starting belief (dashed) → now (solid)</span></div>
+  <div class="chartbox"><canvas id="priorChart" role="img" aria-label="Skeptic and optimist posteriors converging as data grows"></canvas></div>
+  <div class="caption" id="priorCaption"></div>
+  <p class="fine">Both priors are worth about 60 imagined visitors. Stronger opinions take more data to overcome. Weaker ones, less.</p>
+</section>
+</main>
+
+<div id="tour"><div class="box">
+  <div class="row" style="margin-bottom:6px"><div class="dots" id="dots"></div><button class="btn ghost" id="tourClose" style="padding:4px 10px">Close ✕</button></div>
+  <h4 id="tTitle"></h4><p id="tText"></p>
+  <div class="row"><button class="btn ghost" id="tBack">← Back</button><button class="btn" id="tNext">Next →</button></div>
+</div></div>
+<footer>All examples use illustrative numbers. Math runs in your browser; nothing is sent anywhere.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+/*MATH-START*/
+function lgamma(x){
+  const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let y=x,t=x+5.5; t-=(x+0.5)*Math.log(t); let s=1.000000000190015;
+  for(let j=0;j<6;j++) s+=c[j]/++y;
+  return -t+Math.log(2.5066282746310005*s/x);
+}
+function betacf(a,b,x){
+  const MAXIT=300,EPS=3e-14,FPMIN=1e-300; const qab=a+b,qap=a+1,qam=a-1;
+  let c=1,d=1-qab*x/qap; if(Math.abs(d)<FPMIN)d=FPMIN; d=1/d; let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    const m2=2*m; let aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN; c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN; d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN; c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN; d=1/d;
+    const del=d*c; h*=del; if(Math.abs(del-1)<EPS)break;
+  }
+  return h;
+}
+// Regularized incomplete beta = Beta(a,b) CDF
+function betaCdf(x,a,b){
+  if(x<=0)return 0; if(x>=1)return 1;
+  const bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  return x<(a+1)/(a+b+2) ? bt*betacf(a,b,x)/a : 1-bt*betacf(b,a,1-x)/b;
+}
+function betaPdf(x,a,b){
+  if(x<=0||x>=1)return 0;
+  return Math.exp((a-1)*Math.log(x)+(b-1)*Math.log(1-x)-(lgamma(a)+lgamma(b)-lgamma(a+b)));
+}
+function betaQuantile(p,a,b){
+  let lo=0,hi=1;
+  for(let i=0;i<60;i++){const m=(lo+hi)/2; if(betaCdf(m,a,b)<p)lo=m; else hi=m;}
+  return (lo+hi)/2;
+}
+// P(B > A) for independent Beta posteriors, by numerical integration of pdf_B(x)*CDF_A(x)
+function probBBeatsA(aA,bA,aB,bB){
+  const lo=Math.min(betaQuantile(1e-9,aA,bA),betaQuantile(1e-9,aB,bB));
+  const hi=Math.max(betaQuantile(1-1e-9,aA,bA),betaQuantile(1-1e-9,aB,bB));
+  const N=8000,dx=(hi-lo)/N; let s=0;
+  for(let i=0;i<N;i++){const x=lo+(i+0.5)*dx; s+=betaPdf(x,aB,bB)*betaCdf(x,aA,bA)*dx;}
+  return Math.min(1,Math.max(0,s)); // = P(A<B)
+}
+// Relative lift (B/A - 1): deterministic quantile-grid quadrature over both posteriors
+function liftSummary(aA,bA,aB,bB,n=300){
+  const qa=new Float64Array(n),qb=new Float64Array(n);
+  for(let i=0;i<n;i++){const p=(i+0.5)/n; qa[i]=betaQuantile(p,aA,bA); qb[i]=betaQuantile(p,aB,bB);}
+  const r=new Float64Array(n*n); let k=0,sum=0;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){const v=qb[j]/qa[i]-1; r[k++]=v; sum+=v;}
+  r.sort();
+  const pick=q=>r[Math.min(r.length-1,Math.floor(q*r.length))];
+  return {mean:sum/r.length,lo:pick(0.025),hi:pick(0.975)};
+}
+/*MATH-END*/
+
+const $=id=>document.getElementById(id);
+const pct=(x,d=0)=>(x*100).toFixed(d)+'%';
+const sgn=(x,d=0)=>(x>=0?'+':'−')+Math.abs(x*100).toFixed(d)+'%';
+const beta={mean:(a,b)=>a/(a+b), ci:(a,b)=>[betaQuantile(.025,a,b),betaQuantile(.975,a,b)]};
+const COL={blue:'#2563eb',lightBlue:'#7aa2f7',orange:'#d9480f',grey:'#8892a0'};
+
+function curve(f,x0,x1,n=240){const pts=[];for(let i=0;i<=n;i++){const x=x0+(x1-x0)*(i+0.5)/(n+1);pts.push({x,y:f(x)});}return pts;}
+function mkChart(id){
+  return new Chart($(id),{type:'line',data:{datasets:[]},options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:150},
+    interaction:{mode:'nearest',intersect:false},
+    elements:{point:{radius:0}},
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    scales:{x:{type:'linear',ticks:{callback:v=>(v*100).toFixed(v*100%1?1:0)+'%',maxTicksLimit:8},grid:{color:'#eef1f5'}},
+            y:{display:false,beginAtZero:true}}}});
+}
+function ds(label,pts,color,o={}){return Object.assign({label,data:pts,borderColor:color,backgroundColor:color,borderWidth:2.5,fill:false,tension:.2,parsing:false},o);}
+function fillCol(c,a){return c+a;}
+function setX(ch,lo,hi){ch.options.scales.x.min=lo;ch.options.scales.x.max=hi;}
+
+/* ---------- 1. Coin ---------- */
+const coinChart=mkChart('coinChart');
+function updateCoin(){
+  const a=+$('pa').value,b=+$('pb').value,h=+$('h').value,t=+$('t').value;
+  $('pav').textContent=a;$('pbv').textContent=b;$('hv').textContent=h;$('tv').textContent=t;
+  const pa=a,pb=b,qa=a+h,qb=b+t;
+  setX(coinChart,0,1);
+  coinChart.data.datasets=[
+    ds('prior',curve(x=>betaPdf(x,pa,pb),0,1),COL.grey,{borderDash:[6,5],borderWidth:2}),
+    ds('likelihood',curve(x=>betaPdf(x,h+1,t+1),0,1),COL.lightBlue,{borderWidth:2}),
+    ds('posterior',curve(x=>betaPdf(x,qa,qb),0,1),COL.blue,{borderWidth:3.5,fill:true,backgroundColor:'rgba(37,99,235,.15)'})];
+  coinChart.update();
+  const [l0,h0]=beta.ci(pa,pb),[l1,h1]=beta.ci(qa,qb);
+  const n=h+t, w=n/(n+a+b);
+  $('coinCaption').innerHTML=
+    `<b>Before data</b> you believed the coin lands heads about <b>${pct(beta.mean(pa,pb))}</b> of the time, 95% sure it’s between ${pct(l0)} and ${pct(h0)}. `+
+    (n? `After seeing <b>${h} heads and ${t} tails</b>, you believe about <b>${pct(beta.mean(qa,qb))}</b>, 95% sure it’s between ${pct(l1)} and ${pct(h1)}. `+
+        `Your starting belief is worth ${a+b-2<=0?'almost no':'about '+(a+b)} imagined flips; the data is ${n} real ones, so the data carries ${pct(w)} of the weight.`
+      : `You haven’t seen any flips yet, so your belief hasn’t changed. Add some heads and tails with the sliders.`);
+}
+['pa','pb','h','t'].forEach(i=>$(i).addEventListener('input',()=>{updateCoin();syncPresets();}));
+function syncPresets(){document.querySelectorAll('#presets .chip').forEach(c=>c.classList.toggle('on',+c.dataset.a===+$('pa').value&&+c.dataset.b===+$('pb').value));}
+document.querySelectorAll('#presets .chip').forEach(c=>c.addEventListener('click',()=>{$('pa').value=c.dataset.a;$('pb').value=c.dataset.b;updateCoin();syncPresets();}));
+
+/* ---------- 2. A/B ---------- */
+const abChart=mkChart('abChart');
+function readInt(id){let v=Math.floor(+$(id).value);return isFinite(v)&&v>0?v:0;}
+function updateAB(){
+  const av=readInt('av'),bv=readInt('bv');
+  const ac=Math.min(readInt('ac'),av),bc=Math.min(readInt('bc'),bv);
+  const aA=1+ac,bA=1+av-ac,aB=1+bc,bB=1+bv-bc;
+  const lo=Math.max(0,Math.min(betaQuantile(.0005,aA,bA),betaQuantile(.0005,aB,bB)));
+  const hi=Math.min(1,Math.max(betaQuantile(.9995,aA,bA),betaQuantile(.9995,aB,bB)));
+  setX(abChart,lo,hi);
+  abChart.data.datasets=[
+    ds('A',curve(x=>betaPdf(x,aA,bA),lo,hi,300),COL.grey,{fill:true,backgroundColor:'rgba(136,146,160,.22)'}),
+    ds('B',curve(x=>betaPdf(x,aB,bB),lo,hi,300),COL.orange,{fill:true,backgroundColor:'rgba(217,72,15,.18)'})];
+  abChart.update();
+  const p=probBBeatsA(aA,bA,aB,bB), L=liftSummary(aA,bA,aB,bB);
+  const [al,ah]=beta.ci(aA,bA),[bl,bh]=beta.ci(aB,bB);
+  $('aRate').textContent=av?`Observed ${pct(ac/av,1)}  (${ac} of ${av})`:'No data yet';
+  $('bRate').textContent=bv?`Observed ${pct(bc/bv,1)}  (${bc} of ${bv})`:'No data yet';
+  $('pbeat').textContent=Math.round(p*100)+'%';
+  $('lift').textContent=sgn(L.mean,1);
+  $('liftCI').textContent=`95% credible interval: ${sgn(L.lo,0)} to ${sgn(L.hi,0)}`;
+  $('worse').textContent=pct(1-p,0);
+  $('rates').textContent=`A ${pct(beta.mean(aA,bA),1)} · B ${pct(beta.mean(aB,bB),1)}`;
+  $('ratesCI').textContent=`95% ranges: A ${pct(al,1)}–${pct(ah,1)}, B ${pct(bl,1)}–${pct(bh,1)}`;
+  let v;
+  if(av+bv===0) v='Enter some visitors and conversions to begin.';
+  else if(p>=.95) v=`<b>Strong evidence B is better.</b> There’s only a ${pct(1-p)} chance switching would be a mistake.`;
+  else if(p>=.8) v=`<b>B is probably better, but not settled.</b> There’s still a ${pct(1-p)} chance it’s no better than A. Worth more data if the decision is costly or hard to undo.`;
+  else if(p>.2) v=`<b>Too close to call.</b> The data can’t yet separate the two variants. Keep the test running.`;
+  else if(p>.05) v=`<b>B is probably worse than A, but not settled.</b>`;
+  else v=`<b>Strong evidence B is worse.</b>`;
+  $('abVerdict').innerHTML=v;
+}
+['av','ac','bv','bc'].forEach(i=>$(i).addEventListener('input',updateAB));
+
+/* ---------- 3. Priors ---------- */
+const priorChart=mkChart('priorChart');
+const PRIORS={S:[3,57],O:[12,48]}; const TRUE=.10; let pmode='both';
+function updatePrior(){
+  const n=+$('pn').value; $('pnv').textContent=n.toLocaleString();
+  const conv=Math.round(n*TRUE);
+  const sets=[];
+  const show={S:pmode!=='O',O:pmode!=='S'};
+  const meta={S:[COL.blue,'Skeptic'],O:[COL.orange,'Optimist']};
+  const post={};
+  for(const k of ['S','O']){
+    const [a,b]=PRIORS[k], pa=a+conv, pb=b+n-conv; post[k]=[pa,pb];
+    if(!show[k])continue;
+    if(n>0) sets.push(ds(meta[k][1]+' start',curve(x=>betaPdf(x,a,b),0,.4,300),meta[k][0],{borderDash:[5,5],borderWidth:1.5}));
+    sets.push(ds(meta[k][1],curve(x=>betaPdf(x,pa,pb),0,.4,300),meta[k][0],{borderWidth:3.5,fill:true,backgroundColor:meta[k][0]+'26'}));
+  }
+  setX(priorChart,0,.4); priorChart.data.datasets=sets; priorChart.update();
+  const mS=beta.mean(...post.S),mO=beta.mean(...post.O),gap=Math.abs(mO-mS);
+  // smallest n where the two best guesses are within 1 point
+  let need=0; for(;need<1e5;need+=10){const c=Math.round(need*TRUE);if(Math.abs(beta.mean(PRIORS.O[0]+c,PRIORS.O[1]+need-c)-beta.mean(PRIORS.S[0]+c,PRIORS.S[1]+need-c))<.01)break;}
+  let txt=n===0
+    ? `With no data, the skeptic’s best guess is <b>${pct(mS,1)}</b> and the optimist’s is <b>${pct(mO,1)}</b>, a <b>${(gap*100).toFixed(1)}-point</b> disagreement. Slide the data up.`
+    : `After <b>${n.toLocaleString()}</b> visitors, the skeptic believes <b>${pct(mS,1)}</b> and the optimist <b>${pct(mO,1)}</b>, now only <b>${(gap*100).toFixed(1)} points</b> apart. `
+      + (gap<.01?`They’ve effectively <b>converged</b> on the truth (10%).`:`They’re still arguing; it takes about <b>${need.toLocaleString()}</b> visitors to get within 1 point.`);
+  $('priorCaption').innerHTML=txt;
+}
+$('pn').addEventListener('input',updatePrior);
+document.querySelectorAll('#priorToggle .chip').forEach(c=>c.addEventListener('click',()=>{
+  pmode=c.dataset.m;document.querySelectorAll('#priorToggle .chip').forEach(x=>x.classList.toggle('on',x===c));updatePrior();}));
+
+/* ---------- Guided tour ---------- */
+const STEPS=[
+ {sec:'coin',title:'1 of 5 · Start with a belief',text:'Before any evidence, we hold a belief, drawn here as a curve. This one says “the coin is probably fair, but we’re not certain.” Wider curve = less certain.',
+  set(){setCoin(10,10,0,0)}},
+ {sec:'coin',title:'2 of 5 · Add evidence',text:'We flip 14 heads and 6 tails. The light-blue curve is “what the data alone says”: it points to about 70% heads.',
+  set(){setCoin(10,10,14,6)}},
+ {sec:'coin',title:'3 of 5 · Your belief updates',text:'The bold curve is the blend: pulled toward the data, but tempered by what you believed before. Read the caption below the chart. That’s the whole idea.',
+  set(){setCoin(10,10,14,6)}},
+ {sec:'prior',title:'4 of 5 · Starting beliefs fade as data grows',text:'A skeptic and an optimist disagree at first. Drag the slider right: with enough visitors they end up agreeing. Weak priors fade fast, so don’t fear a “biased” start.',
+  set(){$('pn').value=300;updatePrior();}},
+ {sec:'ab',title:'5 of 5 · Make the call',text:'Same machinery, real decision: instead of “is B better?” you get “you get a probability that B is better, plus the expected lift and the risk of being wrong.” Change the numbers to see how more data sharpens the answer.',
+  set(){$('av').value=1000;$('ac').value=100;$('bv').value=1000;$("bc").value=116;updateAB();}}
+];
+function setCoin(a,b,h,t){$('pa').value=a;$('pb').value=b;$('h').value=h;$('t').value=t;updateCoin();syncPresets();}
+let step=0;
+function showStep(i){
+  step=i;const s=STEPS[i];
+  $('tour').style.display='block';
+  $('tTitle').textContent=s.title;$('tText').textContent=s.text;
+  $('dots').innerHTML=STEPS.map((_,j)=>`<i class="${j===i?'on':''}"></i>`).join('');
+  $('tBack').disabled=i===0;$('tNext').textContent=i===STEPS.length-1?'Finish ✓':'Next →';
+  document.querySelectorAll('section.card').forEach(c=>c.classList.toggle('spot',c.id===s.sec));
+  s.set();
+  $(s.sec).scrollIntoView({behavior:'smooth',block:'start'});
+}
+function endTour(){$('tour').style.display='none';document.querySelectorAll('section.card').forEach(c=>c.classList.remove('spot'));}
+$('tourStart').addEventListener('click',()=>showStep(0));
+$('tourClose').addEventListener('click',endTour);
+$('tBack').addEventListener('click',()=>step>0&&showStep(step-1));
+$('tNext').addEventListener('click',()=>step<STEPS.length-1?showStep(step+1):endTour());
+
+updateCoin();syncPresets();updateAB();updatePrior();
+</script>
+</body>
+</html>
