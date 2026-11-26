@@ -76,6 +76,7 @@ input[type=range]{width:100%;accent-color:var(--blue);height:28px}
 #tour .dots i.on{background:#fff}
 #tour .btn.ghost{background:transparent;color:#fff;border-color:#52607a}
 @media(max-width:620px){nav{display:none}.top-in{flex-wrap:nowrap}#tour{padding:8px}#tour .box{padding:12px 14px}#tour p{font-size:14px;margin-bottom:8px}}
+.simrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}.simstat{font-size:14px;color:var(--muted)}
 footer{color:var(--muted);font-size:13px;text-align:center;padding:20px 16px 40px}
 </style>
 </head>
@@ -141,6 +142,11 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:20px 16px 40p
         <div class="num"><label for="bc">Conversions</label><input id="bc" type="number" inputmode="numeric" min="0" step="1" value="116"></div>
       </div><div class="fine" id="bRate"></div></div>
   </div>
+  <div class="simrow">
+    <button class="btn" id="simBtn">🎲 Simulate a day (+100 visitors)</button>
+    <button class="btn ghost" id="simReset">↺ Reset</button>
+    <span class="simstat" id="simStat" aria-live="polite"></span>
+  </div>
   <div class="big"><div class="lbl">Probability B beats A</div><div class="num-big" id="pbeat">–</div><div class="lbl" id="bigNote" style="margin-top:6px"></div></div>
   <div class="caption" id="abVerdict" style="margin-top:0"></div>
   <div class="stats" style="margin-top:14px">
@@ -150,7 +156,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;padding:20px 16px 40p
   </div>
   <div class="legend" style="margin-top:16px"><span><i style="border-color:var(--grey)"></i>A</span><span><i style="border-color:var(--orange)"></i>B</span></div>
   <div class="chartbox"><canvas id="abChart" role="img" aria-label="Posterior curves for the conversion rate of A and B"></canvas></div>
-  <p class="fine">Where the curves overlap, we can’t tell the variants apart. More visitors make the curves narrower and the overlap smaller. “Credible interval” = the range we’re 95% sure contains the true value. Lift is relative: +18% means B converts 18% more often than A.</p>
+  <p class="fine">Simulated visitors are split randomly between A and B and convert at hidden “true” rates (A 10%, B 12%), so watch the curves narrow and drift toward them. Where the curves overlap, we can’t tell the variants apart. More visitors make the curves narrower and the overlap smaller. “Credible interval” = the range we’re 95% sure contains the true value. Lift is relative: +18% means B converts 18% more often than A.</p>
 </section>
 
 <!-- 3. PRIOR -->
@@ -313,6 +319,28 @@ function updateAB(){
   $('abVerdict').innerHTML=v;
 }
 ['av','ac','bv','bc'].forEach(i=>$(i).addEventListener('input',updateAB));
+
+/* Simulate a day: 100 random visitors, added in small batches so the curves visibly update */
+const SIM_TRUE={A:.10,B:.12}, DAY=100, BATCH=5;
+let simDays=0, simBusy=false;
+function simVisitors(n){const r={av:0,ac:0,bv:0,bc:0};
+  for(let i=0;i<n;i++){const isB=Math.random()<.5, hit=Math.random()<(isB?SIM_TRUE.B:SIM_TRUE.A);
+    if(isB){r.bv++;if(hit)r.bc++;}else{r.av++;if(hit)r.ac++;}}return r;}
+function bump(id,d){$(id).value=readInt(id)+d;}
+function simulateDay(){
+  if(simBusy)return; simBusy=true; $('simBtn').disabled=true;
+  const total=$('simStat'); let done=0;
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (function tick(){
+    const r=simVisitors(BATCH); bump('av',r.av);bump('ac',r.ac);bump('bv',r.bv);bump('bc',r.bc);
+    done+=BATCH; updateAB();
+    total.textContent=`Day ${simDays+1}: ${done}/${DAY} visitors…`;
+    if(done<DAY) setTimeout(tick,reduce?0:90);
+    else{simDays++;simBusy=false;$('simBtn').disabled=false;total.textContent=`${simDays} simulated day${simDays>1?'s':''} so far (+${simDays*DAY} visitors)`;}
+  })();
+}
+$('simBtn').addEventListener('click',simulateDay);
+$('simReset').addEventListener('click',()=>{if(simBusy)return;$('av').value=1000;$('ac').value=100;$('bv').value=1000;$('bc').value=116;simDays=0;$('simStat').textContent='';updateAB();});
 
 /* ---------- 3. Priors ---------- */
 const priorChart=mkChart('priorChart');
